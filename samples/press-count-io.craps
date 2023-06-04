@@ -1,0 +1,32 @@
+// count press events on sw[0] and display value on leds
+
+SW     =     0x90000000  // I/O address of switches
+LD     =     0xB0000000  // I/0 address of leds
+CNT    =     0x100       // address where count is stored
+
+       set   LD, %r8     // %r8 contains leds I/O address
+       set   SW, %r9     // %r9 contains switches I/O address
+       set   CNT, %r7    // %r7 points to count memory slot
+       st    %r0, [%r7]  // initialize count
+       
+loop:  call  test        // check for press down
+       bz    loop
+wait:  call  test        // wait for press up
+       bnz   wait
+       call  incr        // increment counter
+skip:  call  aff         // display value on leds
+       ba    loop
+
+test:  ld    [%r9+%r0], %r1
+       andcc %r1, 0b1, %r0
+       ret
+       
+incr:  ld    [%r7], %r1
+       inc   %r1
+       st    %r1, [%r7]
+       ret
+       
+aff:   ld    [%r7], %r1
+       st    %r1, [%r8]
+       ret
+       

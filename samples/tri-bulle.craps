@@ -1,0 +1,33 @@
+// Tri à bulles
+PILE = 0x2000
+           set PILE,%sp         // Initialisation de la pile
+           set TAB, %r1         // r1 : adresse de début du tableau
+           set N, %r3
+           ld [%r3], %r3        // r3 : i init à N (nb d'éléments du tableau)
+tq1:       subcc %r3, 1, %r3    // i <- i - 1
+           be ftq1              // On s'arrête quand i = 0
+           add %r0, %r0, %r2    // j (r2) <- 0
+tq2:       subcc %r2, %r3, %r0
+           be ftq2              // On sort de la boucle interne quand j = i
+           add %r30, %r0, %r28
+           call permuter        // Permutation éventuelle de T[j] et T[j+1]
+           add %r2, 1, %r2      // j <- j + 1
+           ba tq2
+ftq2:      ba tq1
+ftq1:      ba ftq1
+permuter:  push %r3             // r1 contient l'adresse de début du tableau
+           push %r4             // r2 contient l'indice j du 1er élt à evt permuter
+           push %r5
+           ld [%r1+%r2], %r3    // Lecture de T[j]
+           add %r2, 1, %r5
+           ld [%r1+%r5], %r4    // Lecture de T[j+1]
+           subcc %r3, %r4, %r0
+           bleu finpermut       // On permute ssi T[j] > T[j+1]
+           st %r3, [%r1+%r5]
+           st %r4, [%r1+%r2]
+finpermut: pop %r5
+           pop %r4
+           pop %r3
+           ret
+TAB:        .word 14,7,12,27,3,55,44,22,15,6
+N:          .word 10

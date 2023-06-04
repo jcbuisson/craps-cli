@@ -1,0 +1,19 @@
+SW = 0x90000000 // switches I/O address
+LD = 0xB0000000 // leds I/O address
+
+MASK1 = 0x0000FF00
+MASK2 = 0x000000FF
+
+           set    SW, %r8
+           set    LD, %r9
+           set    MASK1, %r6
+           set    MASK2, %r7
+loop:      ld     [%r8+%r0], %r1
+           mov    %r1, %r2
+           and    %r1, %r6, %r1
+           slr    %r1, 8, %r1
+           and    %r2, %r7, %r2
+           add    %r1, %r2, %r3
+           st     %r3, [%r9+%r0]
+           ba     loop
+           

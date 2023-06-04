@@ -1,0 +1,25 @@
+PILE = 0x200		// le fond de pile à l’adresse 0x200
+N = 5
+          		set   	PILE, %sp	//initialisation du pointeur de pile : ABSOLUMENT NECESSAIRE
+          		set   	N, %r1
+          		call  	factorielle	// factorille(N) – résultat dans r2
+Stop :		   ba 	Stop
+
+// calcule la factorielle d’un entier naturel
+// In : r1 contient le nombre dont veut calculer la factorielle
+//	Out : r2 contient le résultat
+factorielle:   push  	%r1		// r1 modifié dans le sous-programme : il doit donc être 
+                                 // sauvegardé dans la pile à l’entrée et restauré à la sortie
+               cmp      %r1, 1
+               bleu     premier_ret
+               dec      %r1      // r1 -1
+               push     %r28
+               call    factorielle
+               pop  %r28        // r2 = factorielle(n-1)
+               inc    %r1
+               umulcc  %r1, %r2, %r2  // n*factorielle(n-1)
+               ba    retour
+premier_ret:   set  1, %r2               
+retour:   	   pop %r1    	// restaurer r1 qui doit retrouver sa valeur d’entrée  
+          		ret
+               

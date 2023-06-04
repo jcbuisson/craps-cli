@@ -1,0 +1,82 @@
+// Evaluation d'une expression en Polonaise inversée
+PILE = 0x2000
+           set PILE,%sp         // Initialisation de la pile
+           set Expr, %r1         // r1 : adresse de début du tableau
+           set MaPile, %r2      // r2 : sommet de pile (1er libre)
+           set TailleP, %r3     
+           ld [%r3], %r3        // r3 : taille de la pile
+           add %r0, %r0, %r4    // r4 : nb d'élts empilés
+           set 0x80000000, %r7  // Marqueur de fin
+           set 0x40000000, %r9  // Pour l'extension de bit de signe
+           add %r0, %r0, %r5    // i <- 0
+tq:        ld [%r1+%r5], %r6    // lecture terme suivant
+           subcc %r6, %r7, %r0
+           be finEval           // Symbole fin ==> on a terminé
+           andcc %r6, %r7, %r0
+           bne Operateur        // Bit de poids fort à 1 ==> opérateur
+           and %r6, %r9, %r0
+           be suite
+           or %r6, %r7, %r6     // Opérande : extension de 31 à 32 bits
+suite:     add %r30, %r0, %r28
+           call Empiler         // On empile l'opérande
+           subcc %r2, %r0, %r0
+           be Erreur            // Pile pleine ==> pas empilé
+           ba fsi
+Operateur: add %r30, %r0, %r28
+           call Depiler         // Opérateur : on dépile le 2ème opérande
+           subcc %r2, %r0, %r0
+           be Erreur            // Pile vide ==> pas dépilé
+           add %r8, %r0, %r10   // On libère r8 pour dépiler le 1er opérande
+           add %r30, %r0, %r28
+           call Depiler         // On dépile le 1er opérande
+           subcc %r2, %r0, %r0
+           be Erreur            // Pile vide ==> pas dépilé
+           andcc %r6, 1, %r0    // Quel opérateur ?
+           be moins
+           add %r8, %r10, %r6   // Addition
+           add %r30, %r0, %r28
+           call Empiler         // On empile le résultat
+           subcc %r2, %r0, %r0
+           be Erreur            // Pile pleine ==> pas empilé
+           ba fsi
+moins:     sub %r8, %r10, %r6   // Soustraction
+           add %r30, %r0, %r28
+           call Empiler         // On empile le résultat
+           subcc %r2, %r0, %r0
+           be Erreur            // Pile pleine ==> pas empilé
+fsi:       add %r5, 1, %r5      // On passe au terme suivant
+           ba tq
+finEval:   add %r30, %r0, %r28
+           call Depiler         // Fin expression ==> on dépile le résultat final
+           subcc %r2, %r0, %r0
+           be Erreur            // Pile vide ==> pas dépilé
+           set Res, %r1
+           st %r8, [%r1]        // On mémorise le résultat
+           add %r30, %r0, %r28
+           call Depiler         // On vérifie que la pile est bien vide
+           subcc %r2, %r0, %r0
+           be Fini
+Erreur:    set Valide, %r1      // Expression non valide
+           st %r0, [%r1]
+Fini:      ba Fini
+// Procédure empiler
+Empiler:   subcc %r4, %r3, %r0  // On vérifie que la pile n'est pas pleine
+           be ErrEmp
+           st %r6, [%r2+%r4]    // On empile
+           add %r4, 1, %r4      // On met à jour le pointeur de sommet de pile
+           ba FinEmp
+ErrEmp:    add %r0, %r0, %r2    // Pile pleine ==> on met l'adresse de pile à 0
+FinEmp:    ret
+// Procédure dépiler
+Depiler:   subcc %r4, %r0, %r0  // On vérifie que la pile n'est pas vide
+           be ErrDep
+           sub %r4, 1, %r4      // On dépile
+           ld [%r2+%r4], %r8    // On met à jour le pointeur de sommet de pile
+           ba FinDep
+ErrDep:    add %r0, %r0, %r2    // Pile vide ==> on met l'adresse de pile à 0
+FinDep:    ret
+Expr:      .word 15, 7, 4, 0x80000002, 0x80000001, 2, 0x80000002, 0x80000000
+Res:       .word 0
+Valide:    .word 1
+MaPile:    .word 0,0,0,0,0,0, 0,0,0,0
+TailleP:   .word 10

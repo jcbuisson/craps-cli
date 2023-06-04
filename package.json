@@ -1,0 +1,36 @@
+{
+  "name": "",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "license": "AGPL-version-3.0",
+  "private": false,
+  "engines": {
+    "node": ">= 14.0.0",
+    "npm": ">= 6.0.0"
+  },
+  "homepage": "",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "bugs": "",
+  "keywords": [],
+  "author": {
+    "name": "",
+    "email": "",
+    "url": ""
+  },
+  "contributors": [],
+  "scripts": {
+    "craps": "node scripts/craps-cli.js",
+    "test": ""
+  },
+  "dependencies": {
+    "@jcbuisson/readlinesync": "^1.0.2",
+    "commander": "^10.0.1",
+    "inquirer": "^9.2.7",
+    "lodash": "^4.17.21"
+  }
+}

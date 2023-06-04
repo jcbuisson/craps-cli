@@ -1,0 +1,138 @@
+// Eratosthene : nombres premiers, palindromes
+N = 160    
+PILE = 0x2000
+        set  PILE, %sp
+        set  tab_premiers,%r1
+        set  N, %r2
+        call  eratosthene
+        set  tab_palindromes, %r3
+        call  palindromes
+fin:    ba  fin
+
+tab_premiers:  .org tab_premiers+N+1
+tab_palindromes:  .org tab_palindromes+N/10
+
+// IN @tab premiers : r1
+// IN N (Borne max de tab premiers) : r2
+eratosthene: 
+        push %r2
+        push %r4
+        push %r28
+        call init_tab_premiers
+        set 2, %r3
+era_bcle:        // Tant que I*I < N    
+        umulcc %r3, %r3, %r4
+        cmp   %r4, %r2
+        bgeu   era_ret
+        ld   [%r1+%r3], %r5
+        cmp   %r5, %r0
+        beq   era_suite
+        call   elim_multiples  // éliminer les multiples
+era_suite:        
+        inc   %r3   // I++ 
+        ba    era_bcle
+era_ret: 
+        pop  %r28
+        pop   %r4
+        pop   %r3
+        ret
+        
+// IN @Tab premiers : r1 
+// IN N (Borne max de tab premiers) : r2 
+init_tab_premiers:
+        push %r2 
+ini_bcle:   
+        st   %r2, [%r1+%r2]
+        cmp  %r2, 0
+        beq  ini_ret
+        dec  %r2
+        ba   ini_bcle
+ini_ret:  
+        pop  %r2
+        ret
+
+// r1 : IN @Tab premiers
+// r2 : IN N, Borne max de tab premiers
+// r3 : IN I valeur dont il faut éliminer les multiples
+elim_multiples: 
+        push   %r4
+        umulcc %r3, %r3, %r4 // commncer à M=I*I
+em_bcle:      // Tant que M <= N
+        cmp   %r4, %r2
+        bgu   em_ret
+        st   %r0, [%r1+%r4]
+        add  %r4, %r3, %r4
+        ba   em_bcle
+em_ret:  
+        pop %r4
+        ret
+
+// r1 : IN @Tab premiers
+// r2 : IN N, Borne max de tab premiers
+// r3 : IN @Tab palindromes
+// r4 : OUT nombre de palindromes
+palindromes:  
+        push   %r5
+        push   %r6
+        push   %r7
+        push   %r28
+        set   2, %r7      // 0 et 1 non compris
+        clr   %r4         // index palindromes
+pal_bcle:      // Répéter
+        ld    [%r1+%r7], %r5
+        cmp  %r5, 0
+        beq  pal_suite
+        call est_palindrome    // in r5, out r6 = 0 si non palindrome
+        cmp  %r6, 0
+        beq  pal_suite
+        st   %r5, [%r3+%r4]
+        inc  %r4
+pal_suite:  
+        inc %r7
+        cmp %r7, %r2
+        bleu pal_bcle    // Jusqu'à %r7 > %r2 ou tanque r7<=r2
+        pop %r28
+        pop %r7
+        pop %r6
+        pop %r5
+        ret
+
+// Vérifie si un nombre est palindrome décimal
+// r5 : IN nombre
+// r6 : OUT = 1 si palindrome, 0 si non
+est_palindrome:  
+        push %r4
+        push %r5
+        push %r8
+        push %r28
+        mov  %r5, %r4  // copie nombre
+        clr  %r8      // nombre en inversant les faibles et les forts poids
+ep_decomposer:        
+        call div10   // in out r4=quotient, out r6=reste
+        umulcc %r8, 10, %r8
+        add  %r8, %r6, %r8
+        cmp  %r5, 0
+        bne  ep_decomposer
+        clr  %r6
+        cmp  %r8, %r4
+        bne  ep_nonpal
+        set  1, %r6
+ep_nonpal:  
+        pop %r28
+        pop %r8
+        pop %r5
+        pop %r4
+        ret
+
+// r5 : IN nombre, OUT = quotient
+// r6 : OUT = reste
+div10: 
+        mov %r5, %r6
+        clr  %r5
+div_bcle:        
+        cmp %r6, 10
+        blu div_ret     
+        sub %r6, 10, %r6
+        inc %r5
+        ba div_bcle
+div_ret:    ret

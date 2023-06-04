@@ -1,0 +1,33 @@
+// Crible d'Erathostène sur un tableau
+          add %r20, 1, %r20
+          set Tab, %r1
+          set Elim, %r2
+          set N, %r3
+          ld [%r3], %r3
+          sub %r3, 1, %r3
+          add %r0, %r0, %r4
+p1:       subcc %r4, %r3, %r0
+          be fin
+          ld [%r2+%r4], %r5
+          subcc %r5, %r0, %r0
+          bne fs1
+          ld [%r1+%r4], %r6
+          add %r6, %r0, %r7
+          add %r4, 1, %r8
+p2:       subcc %r8, %r3, %r0
+          bgu fs1
+          ld [%r1+%r8], %r9
+incx:     subcc %r7, %r9, %r0
+          bgeu s2
+          add %r7, %r6, %r7
+          ba incx
+s2:       bne fs2
+          st %r20, [%r2+%r8]
+fs2:      add %r8, 1, %r8
+          ba p2
+fs1:      add %r4, 1, %r4
+          ba p1
+fin:      ba fin          
+Tab:      .word 3, 4, 7, 12, 13, 15, 16, 20, 23, 37
+Elim:     .word 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+N:        .word 10
