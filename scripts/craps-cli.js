@@ -2,9 +2,9 @@
 
 import { program } from 'commander'
 import { readFile } from 'fs/promises'
-import { promises as fs } from 'fs';
 
 import { checkModule } from '../src/crapsChecker.js'
+import { unsignedToBin32 } from '../src/binutils.js'
 
 
 async function main() {
@@ -41,7 +41,11 @@ async function main() {
          if (errorMsg) {
             console.error(errorMsg)
          } else {
-            console.log('No error found')
+            // display memory contents
+            for (const addr in memory) {
+               const value = memory[addr].value
+               console.log(unsignedToBin32(addr), value)
+            }
          }
       } catch (err) {
          console.error(err)
@@ -49,11 +53,21 @@ async function main() {
    })
       
    program
-   .command('test <source> <testfile')
+   .command('test <source> <testfile>')
    .description('Test a CRAPS program')
-   .action((source, testfile) => {
-      console.log('Running assemble command...', source, testfile)
-      // Add your logic for the 'assemble' command here
+   .action(async (source, testfile) => {
+      try {
+         const buffer = await readFile(source)
+         const text = buffer.toString()
+         const { errorMsg, lines, symbols, memory } = checkModule(text)
+         if (errorMsg) {
+            console.error(errorMsg)
+         } else {
+            // run test file line by line
+         }
+      } catch (err) {
+         console.error(err)
+      }
    })
       
    program.parse()
