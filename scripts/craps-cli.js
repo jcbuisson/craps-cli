@@ -1,42 +1,62 @@
 #!/usr/bin/env node
 
 import { program } from 'commander'
-import inquirer from 'inquirer'
 import { readFile } from 'fs/promises'
+import { promises as fs } from 'fs';
 
 import { checkModule } from '../src/crapsChecker.js'
 
 
 async function main() {
-   try {
-      program
-         .option('-f, --file <filepath>', 'file path')
+   program
+      .name('craps-cli')
+      .description('CLI to CRAPS operations')
+      .version('1.0.0')
 
-      program.parse()
-      const options = program.opts()
-
-      const answers = await inquirer.prompt([
-         {
-            type: 'input',
-            name: 'file',
-            message: 'Enter file path',
-            when: !options.file,
-         },
-      ])
-      const filepath = options.file || answers.file
-
-      const buffer = await readFile(filepath)
-      const text = buffer.toString()
-      console.log('text', text)
-
-      checkModule(text)
-
-
-   } catch(err) {
-      console.error(err.toString())
-   } finally {
-      process.exit(0)
-   }
+   program
+   .command('check <source>')
+   .description('Check a CRAPS program')
+   .action(async (source) => {
+      try {
+         const buffer = await readFile(source)
+         const text = buffer.toString()
+         const { errorMsg, lines, symbols, memory } = checkModule(text)
+         if (errorMsg) {
+            console.error(errorMsg)
+         } else {
+            console.log('No error found')
+         }
+      } catch (err) {
+         console.error(err)
+      }
+   })
+      
+   program
+   .command('assemble <source>')
+   .action(async (source) => {
+      try {
+         const buffer = await readFile(source)
+         const text = buffer.toString()
+         const { errorMsg, lines, symbols, memory } = checkModule(text)
+         if (errorMsg) {
+            console.error(errorMsg)
+         } else {
+            console.log('No error found')
+         }
+      } catch (err) {
+         console.error(err)
+      }
+   })
+      
+   program
+   .command('test <source> <testfile')
+   .description('Test a CRAPS program')
+   .action((source, testfile) => {
+      console.log('Running assemble command...', source, testfile)
+      // Add your logic for the 'assemble' command here
+   })
+      
+   program.parse()
 }
 
 main()

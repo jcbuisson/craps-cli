@@ -1,14 +1,17 @@
 {
-  "name": "",
+  "name": "craps-cli",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "scripts/craps-cli.js",
   "type": "module",
   "license": "AGPL-version-3.0",
   "private": false,
   "engines": {
     "node": ">= 14.0.0",
     "npm": ">= 6.0.0"
+  },
+  "bin": {
+    "craps": "./scripts/craps-cli.js"
   },
   "homepage": "",
   "repository": {

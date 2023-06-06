@@ -1,215 +1,223 @@
 
 import { bin32ToUnsigned, bin32ToSigned, unsignedToBin32, bin16ToUnsigned, signedToBin32, sub32, add32, sll32, slr32, and32, or32, xor32 } from './binutils.js'
 
+import lodashPkg from 'lodash'
+const { padStart } = lodashPkg
+
 
 export async function runStop() {
    this.stop = !this.stop
    while (!this.stop) {
       this.step()
-      this.stop = this.breakpoints.indexOf(this.currentAddress) !== -1
+      this.stop = this.breakpoints.indexOf(currentAddress) !== -1
       await sleep(10)
    }
 }
 
-export function step () {
+export function simulate(memoryDict, maxCycles=1000) {
+   let cycleCount = 0
+   let itFlipFlop = false
+   const flagArray = [false, false, false, false] // NZVC
+   let currentAddress = 0
+
    try {
-      this.cycleCount += 1
-      if (this.itFlipFlop === 1) {
+      cycleCount += 1
+      if (itFlipFlop) {
          // interrupt
          // clear IT bit
-         this.itFlipFlop = 0
+         itFlipFlop = false
          // push %pc
-         let sp32 = sub32(this.getRegisterValue(29), '00000000000000000000000000000001').result
-         this.setRegisterValue(29, sp32)
+         let sp32 = sub32(getRegisterValue(29), '00000000000000000000000000000001').result
+         setRegisterValue(29, sp32)
          let sp = bin32ToUnsigned(sp32)
-         this.setMemoryContent(sp, this.getRegisterValue(30))
+         setMemoryContent(sp, getRegisterValue(30))
          // push NZVC
-         sp32 = sub32(this.getRegisterValue(29), '00000000000000000000000000000001').result
-         this.setRegisterValue(29, sp32)
+         sp32 = sub32(getRegisterValue(29), '00000000000000000000000000000001').result
+         setRegisterValue(29, sp32)
          sp = bin32ToUnsigned(sp32)
-         this.setMemoryContent(sp, '0000000000000000000000000000' + (this.flagArray[0] ? '1' : '0') + (this.flagArray[1] ? '1' : '0') + (this.flagArray[2] ? '1' : '0') + (this.flagArray[3] ? '1' : '0'))
+         setMemoryContent(sp, '0000000000000000000000000000' + (flagArray[0] ? '1' : '0') + (flagArray[1] ? '1' : '0') + (flagArray[2] ? '1' : '0') + (flagArray[3] ? '1' : '0'))
          // goto 1
-         this.setRegisterValue(30, '00000000000000000000000000000001')
-         this.currentAddress = 1
+         setRegisterValue(30, '00000000000000000000000000000001')
+         currentAddress = 1
       } else {
          // no interrupt - execute next instruction
-         let currentLine = this.memoryDict[this.currentAddress]
+         let currentLine = memoryDict[currentAddress]
          //console.log('currentLine', currentLine)
          // set %r31 = instruction code
-         this.setRegisterValue(31, this.memoryDict[this.currentAddress].value)
+         setRegisterValue(31, memoryDict[currentAddress].value)
          if (currentLine.instruction) {
             // execute instruction
             if (currentLine.instruction.type === 'instructionBcc') {
-               if (this.evalCondition(currentLine.instruction)) {
-                  this.setCurrentAddress(this.currentAddress + currentLine.instruction.disp)
+               if (evalCondition(currentLine.instruction)) {
+                  setCurrentAddress(currentAddress + currentLine.instruction.disp)
                } else {
-                  this.setCurrentAddress(this.currentAddress + 1)
+                  setCurrentAddress(currentAddress + 1)
                }
             } else if (currentLine.instruction.type === 'instructionArithLog1a') {
-               let rs1Value = this.getRegisterValue(currentLine.instruction.rs1)
-               let rs2Value = this.getRegisterValue(currentLine.instruction.rs2)
-               let result = this.compute(currentLine.instruction.codeop, rs1Value, rs2Value)
-               this.setRegisterValue(currentLine.instruction.rd, result)
-               this.setCurrentAddress(this.currentAddress + 1)
+               let rs1Value = getRegisterValue(currentLine.instruction.rs1)
+               let rs2Value = getRegisterValue(currentLine.instruction.rs2)
+               let result = compute(currentLine.instruction.codeop, rs1Value, rs2Value)
+               setRegisterValue(currentLine.instruction.rd, result)
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.instruction.type === 'instructionArithLog1b') {
-               let rs1Value = this.getRegisterValue(currentLine.instruction.rs1)
+               let rs1Value = getRegisterValue(currentLine.instruction.rs1)
                let simm13Value = signedToBin32(currentLine.instruction.simm13)
-               let result = this.compute(currentLine.instruction.codeop, rs1Value, simm13Value)
-               this.setRegisterValue(currentLine.instruction.rd, result)
-               this.setCurrentAddress(this.currentAddress + 1)
+               let result = compute(currentLine.instruction.codeop, rs1Value, simm13Value)
+               setRegisterValue(currentLine.instruction.rd, result)
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.instruction.type === 'instructionLoad1a') {
-               let address32 = add32(this.getRegisterValue(currentLine.instruction.rs1), this.getRegisterValue(currentLine.instruction.rs2))
+               let address32 = add32(getRegisterValue(currentLine.instruction.rs1), getRegisterValue(currentLine.instruction.rs2))
                let address = bin32ToUnsigned(address32.result)
-               let content = this.getMemoryContent(address)
-               this.setRegisterValue(currentLine.instruction.rd, content)
-               this.setCurrentAddress(this.currentAddress + 1)
+               let content = getMemoryContent(address)
+               setRegisterValue(currentLine.instruction.rd, content)
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.instruction.type === 'instructionLoad1b') {
                let simm13 = currentLine.instruction.plusMinus === '+' ? currentLine.instruction.simm13 : -currentLine.instruction.simm13
                let simm13_32 = signedToBin32(simm13)
-               let address32 = add32(this.getRegisterValue(currentLine.instruction.rs1), simm13_32)
+               let address32 = add32(getRegisterValue(currentLine.instruction.rs1), simm13_32)
                let address = bin32ToUnsigned(address32.result)
-               let content = this.getMemoryContent(address)
-               this.setRegisterValue(currentLine.instruction.rd, content)
-               this.setCurrentAddress(this.currentAddress + 1)
+               let content = getMemoryContent(address)
+               setRegisterValue(currentLine.instruction.rd, content)
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.instruction.type === 'instructionStore1a') {
-               let address32 = add32(this.getRegisterValue(currentLine.instruction.rs1), this.getRegisterValue(currentLine.instruction.rs2))
+               let address32 = add32(getRegisterValue(currentLine.instruction.rs1), getRegisterValue(currentLine.instruction.rs2))
                let address = bin32ToUnsigned(address32.result)
-               let content = this.getRegisterValue(currentLine.instruction.rd)
-               this.setMemoryContent(address, content)
-               this.setCurrentAddress(this.currentAddress + 1)
+               let content = getRegisterValue(currentLine.instruction.rd)
+               setMemoryContent(address, content)
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.instruction.type === 'instructionStore1b') {
                let simm13 = currentLine.instruction.plusMinus === '+' ? currentLine.instruction.simm13 : -currentLine.instruction.simm13
                let simm13_32 = signedToBin32(simm13)
-               let address32 = add32(this.getRegisterValue(currentLine.instruction.rs1), simm13_32)
+               let address32 = add32(getRegisterValue(currentLine.instruction.rs1), simm13_32)
                let address = bin32ToUnsigned(address32.result)
-               let content = this.getRegisterValue(currentLine.instruction.rd)
-               this.setMemoryContent(address, content)
-               this.setCurrentAddress(this.currentAddress + 1)
+               let content = getRegisterValue(currentLine.instruction.rd)
+               setMemoryContent(address, content)
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.instruction.type === 'instructionSethi') {
-               let imm24Value = _.padStart(parseInt(currentLine.instruction.imm24, 10).toString(2), 24, '0')
-               this.setRegisterValue(currentLine.instruction.rd, imm24Value + '00000000')
-               this.setCurrentAddress(this.currentAddress + 1)
+               let imm24Value = padStart(parseInt(currentLine.instruction.imm24, 10).toString(2), 24, '0')
+               setRegisterValue(currentLine.instruction.rd, imm24Value + '00000000')
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.instruction.type === 'instructionReti') {
                // pop NZVC
-               let sp32 = this.getRegisterValue(29)
+               let sp32 = getRegisterValue(29)
                let sp = bin32ToUnsigned(sp32)
-               let data = this.getMemoryContent(sp)
+               let data = getMemoryContent(sp)
                for (let i = 0; i < 4; i++) {
-                  this.flagArray[i] = (data[28 + i] === '1')
+                  flagArray[i] = (data[28 + i] === '1')
                }
                sp32 = add32(sp32, '00000000000000000000000000000001').result
-               this.setRegisterValue(29, sp32)
+               setRegisterValue(29, sp32)
                // pop %pc
-               sp32 = this.getRegisterValue(29)
+               sp32 = getRegisterValue(29)
                sp = bin32ToUnsigned(sp32)
-               let pcBin32 = this.getMemoryContent(sp)
-               this.setRegisterValue(30, pcBin32)
+               let pcBin32 = getMemoryContent(sp)
+               setRegisterValue(30, pcBin32)
                sp32 = add32(sp32, '00000000000000000000000000000001').result
-               this.setRegisterValue(29, sp32)
-               this.setCurrentAddress(bin32ToUnsigned(pcBin32))
+               setRegisterValue(29, sp32)
+               setCurrentAddress(bin32ToUnsigned(pcBin32))
             }
          } else if (currentLine.synthetic) {
             if (currentLine.synthetic.type === 'clr') {
-               this.setRegisterValue(currentLine.synthetic.rd, '00000000000000000000000000000000')
-               this.setCurrentAddress(this.currentAddress + 1)
+               setRegisterValue(currentLine.synthetic.rd, '00000000000000000000000000000000')
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.synthetic.type === 'mov') {
-               this.setRegisterValue(currentLine.synthetic.rd, this.getRegisterValue(currentLine.synthetic.rs))
-               this.setCurrentAddress(this.currentAddress + 1)
+               setRegisterValue(currentLine.synthetic.rd, getRegisterValue(currentLine.synthetic.rs))
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.synthetic.type === 'inc') {
-               let rdContent = this.getRegisterValue(currentLine.synthetic.rd)
+               let rdContent = getRegisterValue(currentLine.synthetic.rd)
                let rdValue = bin32ToSigned(rdContent)
-               this.setRegisterValue(currentLine.synthetic.rd, signedToBin32(rdValue + 1))
-               this.setCurrentAddress(this.currentAddress + 1)
+               setRegisterValue(currentLine.synthetic.rd, signedToBin32(rdValue + 1))
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.synthetic.type === 'inccc') {
-               let rdContent = this.getRegisterValue(currentLine.synthetic.rd)
+               let rdContent = getRegisterValue(currentLine.synthetic.rd)
                let rdValue = bin32ToSigned(rdContent)
-               this.setRegisterValue(currentLine.synthetic.rd, signedToBin32(rdValue + 1))
-               this.setFlag(0, rdValue + 1 < 0)
-               this.setFlag(1, rdValue + 1 === 0)
-               this.setFlag(2, rdValue === 2147483647)
-               this.setFlag(3, rdValue === 4294967295)
-               this.setCurrentAddress(this.currentAddress + 1)
+               setRegisterValue(currentLine.synthetic.rd, signedToBin32(rdValue + 1))
+               setFlag(0, rdValue + 1 < 0)
+               setFlag(1, rdValue + 1 === 0)
+               setFlag(2, rdValue === 2147483647)
+               setFlag(3, rdValue === 4294967295)
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.synthetic.type === 'dec') {
-               let rdContent = this.getRegisterValue(currentLine.synthetic.rd)
+               let rdContent = getRegisterValue(currentLine.synthetic.rd)
                let rdValue = bin32ToSigned(rdContent)
-               this.setRegisterValue(currentLine.synthetic.rd, signedToBin32(rdValue - 1))
-               this.setCurrentAddress(this.currentAddress + 1)
+               setRegisterValue(currentLine.synthetic.rd, signedToBin32(rdValue - 1))
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.synthetic.type === 'deccc') {
-               let rdContent = this.getRegisterValue(currentLine.synthetic.rd)
+               let rdContent = getRegisterValue(currentLine.synthetic.rd)
                let rdValue = bin32ToSigned(rdContent)
-               this.setRegisterValue(currentLine.synthetic.rd, signedToBin32(rdValue - 1))
-               this.setFlag(0, rdValue - 1 < 0)
-               this.setFlag(1, rdValue - 1 === 0)
-               this.setFlag(2, rdValue === -2147483648)
-               this.setFlag(3, rdValue === -4294967296)
-               this.setCurrentAddress(this.currentAddress + 1)
+               setRegisterValue(currentLine.synthetic.rd, signedToBin32(rdValue - 1))
+               setFlag(0, rdValue - 1 < 0)
+               setFlag(1, rdValue - 1 === 0)
+               setFlag(2, rdValue === -2147483648)
+               setFlag(3, rdValue === -4294967296)
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.synthetic.type === 'setq') {
                let simm13Value = signedToBin32(currentLine.synthetic.simm13)
-               this.setRegisterValue(currentLine.synthetic.rd, simm13Value)
-               this.setCurrentAddress(this.currentAddress + 1)
+               setRegisterValue(currentLine.synthetic.rd, simm13Value)
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.synthetic.type === 'set') {
                let simm32Value = signedToBin32(currentLine.synthetic.simm32)
-               this.setRegisterValue(currentLine.synthetic.rd, simm32Value)
-               this.setCurrentAddress(this.currentAddress + 2)
+               setRegisterValue(currentLine.synthetic.rd, simm32Value)
+               setCurrentAddress(currentAddress + 2)
             } else if (currentLine.synthetic.type === 'cmp') {
-               let rsValueSigned = bin32ToSigned(this.getRegisterValue(currentLine.synthetic.rs))
-               let rsValueUnsigned = bin32ToUnsigned(this.getRegisterValue(currentLine.synthetic.rs))
+               let rsValueSigned = bin32ToSigned(getRegisterValue(currentLine.synthetic.rs))
+               let rsValueUnsigned = bin32ToUnsigned(getRegisterValue(currentLine.synthetic.rs))
                if (currentLine.synthetic.rd !== undefined) {
-                  let rdValueSigned = bin32ToSigned(this.getRegisterValue(currentLine.synthetic.rd))
-                  let rdValueUnsigned = bin32ToUnsigned(this.getRegisterValue(currentLine.synthetic.rd))
+                  let rdValueSigned = bin32ToSigned(getRegisterValue(currentLine.synthetic.rd))
+                  let rdValueUnsigned = bin32ToUnsigned(getRegisterValue(currentLine.synthetic.rd))
                   //console.log('rdValueSigned', rdValueSigned, 'rsValueSigned', rsValueSigned)
                   let diffSigned = rsValueSigned - rdValueSigned
-                  this.setFlag(0, diffSigned < 0) // N
-                  this.setFlag(1, diffSigned === 0) // Z
-                  this.setFlag(2, rsValueSigned < 0 && rdValueSigned >= 0 && diffSigned >= 0 || rsValueSigned >= 0 && rdValueSigned < 0 && diffSigned < 0) // V
-                  this.setFlag(3, rsValueUnsigned < rdValueUnsigned) // C
+                  setFlag(0, diffSigned < 0) // N
+                  setFlag(1, diffSigned === 0) // Z
+                  setFlag(2, rsValueSigned < 0 && rdValueSigned >= 0 && diffSigned >= 0 || rsValueSigned >= 0 && rdValueSigned < 0 && diffSigned < 0) // V
+                  setFlag(3, rsValueUnsigned < rdValueUnsigned) // C
                } else {
                   let diffSigned = rsValueSigned - currentLine.synthetic.simm13
-                  this.setFlag(0, diffSigned < 0) // N
-                  this.setFlag(1, diffSigned === 0) // Z
-                  this.setFlag(2, rsValueSigned < 0 && currentLine.synthetic.simm13 >= 0 && diffSigned >= 0 || rsValueSigned >= 0 && currentLine.synthetic.simm13 < 0 && diffSigned < 0) // V
-                  this.setFlag(3, diffSigned < 0) // C ????
+                  setFlag(0, diffSigned < 0) // N
+                  setFlag(1, diffSigned === 0) // Z
+                  setFlag(2, rsValueSigned < 0 && currentLine.synthetic.simm13 >= 0 && diffSigned >= 0 || rsValueSigned >= 0 && currentLine.synthetic.simm13 < 0 && diffSigned < 0) // V
+                  setFlag(3, diffSigned < 0) // C ????
                }
-               this.setCurrentAddress(this.currentAddress + 1)
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.synthetic.type === 'tst') {
-               let rsValueSigned = bin32ToSigned(this.getRegisterValue(currentLine.synthetic.rs))
-               let rsValueUnsigned = bin32ToUnsigned(this.getRegisterValue(currentLine.synthetic.rs))
-               this.setFlag(0, rsValueSigned < 0) // N
-               this.setFlag(1, rsValueSigned === 0) // Z
-               this.setFlag(2, false) // V
-               this.setFlag(3, false) // C
-               this.setCurrentAddress(this.currentAddress + 1)
+               let rsValueSigned = bin32ToSigned(getRegisterValue(currentLine.synthetic.rs))
+               let rsValueUnsigned = bin32ToUnsigned(getRegisterValue(currentLine.synthetic.rs))
+               setFlag(0, rsValueSigned < 0) // N
+               setFlag(1, rsValueSigned === 0) // Z
+               setFlag(2, false) // V
+               setFlag(3, false) // C
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.synthetic.type === 'negcc') {
-               let rdValueSigned = bin32ToSigned(this.getRegisterValue(currentLine.synthetic.rd))
-               this.setRegisterValue(currentLine.synthetic.rd, signedToBin32(-rdValueSigned))
-               this.setFlag(0, -rdValueSigned < 0) // N
-               this.setFlag(1, rdValueSigned === 0) // Z
-               this.setFlag(2, false) // V
-               this.setFlag(3, false) // C
-               this.setCurrentAddress(this.currentAddress + 1)
+               let rdValueSigned = bin32ToSigned(getRegisterValue(currentLine.synthetic.rd))
+               setRegisterValue(currentLine.synthetic.rd, signedToBin32(-rdValueSigned))
+               setFlag(0, -rdValueSigned < 0) // N
+               setFlag(1, rdValueSigned === 0) // Z
+               setFlag(2, false) // V
+               setFlag(3, false) // C
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.synthetic.type === 'nop') {
-               this.setCurrentAddress(this.currentAddress + 1)
+               setCurrentAddress(currentAddress + 1)
             } else if (currentLine.synthetic.type === 'call') {
-               this.setRegisterValue(28, this.getRegisterValue(30))
-               this.setCurrentAddress(this.currentAddress + currentLine.synthetic.disp + 1)
+               setRegisterValue(28, getRegisterValue(30))
+               setCurrentAddress(currentAddress + currentLine.synthetic.disp + 1)
             } else if (currentLine.synthetic.type === 'ret') {
-               let r28 = bin32ToUnsigned(this.getRegisterValue(28))
+               let r28 = bin32ToUnsigned(getRegisterValue(28))
                let returnAddress = r28 + 2
-               this.setRegisterValue(30, unsignedToBin32(returnAddress))
-               this.setCurrentAddress(returnAddress)
+               setRegisterValue(30, unsignedToBin32(returnAddress))
+               setCurrentAddress(returnAddress)
             } else if (currentLine.synthetic.type === 'push') {
-               let sp32 = sub32(this.getRegisterValue(29), '00000000000000000000000000000001').result
-               this.setRegisterValue(29, sp32)
+               let sp32 = sub32(getRegisterValue(29), '00000000000000000000000000000001').result
+               setRegisterValue(29, sp32)
                let sp = bin32ToUnsigned(sp32)
-               this.setMemoryContent(sp, this.getRegisterValue(currentLine.synthetic.rs))
-               this.setCurrentAddress(this.currentAddress + 2)
+               setMemoryContent(sp, getRegisterValue(currentLine.synthetic.rs))
+               setCurrentAddress(currentAddress + 2)
             } else if (currentLine.synthetic.type === 'pop') {
-               let sp32 = this.getRegisterValue(29)
+               let sp32 = getRegisterValue(29)
                let sp = bin32ToUnsigned(sp32)
-               this.setRegisterValue(currentLine.synthetic.rd, this.getMemoryContent(sp))
+               setRegisterValue(currentLine.synthetic.rd, getMemoryContent(sp))
                sp32 = add32(sp32, '00000000000000000000000000000001').result
-               this.setRegisterValue(29, sp32)
-               this.setCurrentAddress(this.currentAddress + 2)
+               setRegisterValue(29, sp32)
+               setCurrentAddress(currentAddress + 2)
             }
          }
       }
@@ -220,20 +228,22 @@ export function step () {
 }
 
 function setCurrentAddress(address) {
-   this.setRegisterValue(30, unsignedToBin32(address))
-   let content = this.memoryDict[address]
+   setRegisterValue(30, unsignedToBin32(address))
+   let content = memoryDict[address]
    if (!content) {
       let message = `*** execution at uninitialized memory location 0x${address.toString(16)}`
       throw new Error(message)
    }
-   this.currentAddress = address
+   currentAddress = address
 }
+
+const registerValues = {}
 
 function getRegisterValue(regno) {
    if (regno === 0) {
       return '00000000000000000000000000000000'
    } else {
-      return this.registerValues[regno]
+      return registerValues[regno]
    }
 }
 
@@ -245,7 +255,7 @@ function setRegisterValue(regno, bin32Value) {
 
 function getMemoryContent(address) {
    if (address < 0x10000000) {
-      let memoryEntry = this.memoryDict[address]
+      let memoryEntry = memoryDict[address]
       if (!memoryEntry) {
          let message = `*** read-access to uninitialized memory location 0x${address.toString(16)}`
          throw new Error(message)
@@ -272,7 +282,7 @@ function setMemoryContent(address, content) {
    //console.log('setMemoryContent', address, content)
    if (address < 0x10000000) {
       let memoryEntry = { text: '', label: '', value: content }
-      this.memoryDict[address] = memoryEntry
+      memoryDict[address] = memoryEntry
       // force update of memory text
       this.versionNo += 1
    } else if (address === 0xB0000000) {
@@ -292,18 +302,18 @@ function swClick(bitno) {
 
 // 0123: NZVC
 function getFlag(flagIndex) {
-   return this.flagArray.indexOf(flagIndex) !== -1
+   return flagArray.indexOf(flagIndex) !== -1
 }
 
 function setFlag(flag, value) {
    if (value) {
-      if (this.flagArray.indexOf(flag) === -1) {
-         this.flagArray.push(flag)
+      if (flagArray.indexOf(flag) === -1) {
+         flagArray.push(flag)
       }
    } else {
-      let index = this.flagArray.indexOf(flag)
+      let index = flagArray.indexOf(flag)
       if (index !== -1) {
-         this.flagArray.splice(index, 1)
+         flagArray.splice(index, 1)
       }
    }
 }
@@ -367,18 +377,18 @@ function compute(codeop, arg1, arg2) {
       result = res
       if (codeop.endsWith('cc')) {
          // set flags
-         this.setFlag(0, result.charAt(0) === '1') // N
-         this.setFlag(1, result.indexOf('1') === -1) // Z
-         this.setFlag(2, V) // V
-         this.setFlag(3, C) // C
+         setFlag(0, result.charAt(0) === '1') // N
+         setFlag(1, result.indexOf('1') === -1) // Z
+         setFlag(2, V) // V
+         setFlag(3, C) // C
       }
    } else if (codeop === 'umulcc') {
       let varg1 = bin16ToUnsigned(arg1.substring(16))
       let varg2 = bin16ToUnsigned(arg2.substring(16))
       result = unsignedToBin32(varg1 * varg2)
       // set N,Z
-      this.setFlag(0, result.charAt(0) === '1') // N
-      this.setFlag(1, result.indexOf('1') === -1) // Z
+      setFlag(0, result.charAt(0) === '1') // N
+      setFlag(1, result.indexOf('1') === -1) // Z
    } else if (codeop.startsWith('and') || codeop.startsWith('or') || codeop.startsWith('xor')) {
       if (codeop.startsWith('and')) {
          result = and32(arg1, arg2)
@@ -389,8 +399,8 @@ function compute(codeop, arg1, arg2) {
       }
       if (codeop.endsWith('cc')) {
          // set N,Z
-         this.setFlag(0, result.charAt(0) === '1') // N
-         this.setFlag(1, result.indexOf('1') === -1) // Z
+         setFlag(0, result.charAt(0) === '1') // N
+         setFlag(1, result.indexOf('1') === -1) // Z
       }
    } else if (codeop === 'slr') {
       result = slr32(arg1, arg2)

@@ -1,4 +1,4 @@
-SW = 0x90000000 // switches I/O address
+SSW = 0x90000000 // switches I/O address
 LD = 0xB0000000 // leds I/O address
 
 MASK1 = 0x0000FF00

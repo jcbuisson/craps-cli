@@ -1,0 +1,6 @@
+clock   10
+set     it
+set     switch     0
+clock   100
+check   memory     15     0
+check   register   15     0

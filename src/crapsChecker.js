@@ -7,8 +7,6 @@ import { peg$parse } from './parser.js'
 import lodashPkg from 'lodash'
 const { padStart } = lodashPkg
 
-console.log('peg$parse', peg$parse)
-
 
 const op2bin = {
    add:    '000000',
@@ -60,7 +58,7 @@ export function checkModule(text) {
    let lines
    try {
       lines = peg$parse(text)
-      console.log('lines', lines)
+      // console.log('lines', lines)
    } catch(err) {
       if (err.location) {
          errorMsg = 'Line ' + err.location.start.line + ', column ' + err.location.start.column + ': '
@@ -70,7 +68,7 @@ export function checkModule(text) {
    }
 
    // first pass to get all labels and constants, check statements and compute addresses
-   console.log('PASS1')
+   // console.log('PASS1')
    let currentAddress = 0
    let symbols = {}
    try {
@@ -111,7 +109,7 @@ export function checkModule(text) {
    }
 
    // second pass to compute all memory values
-   console.log('PASS2')
+   // console.log('PASS2')
    let memory = {}
    currentAddress = 0
    try {
@@ -557,15 +555,15 @@ export function checkModule(text) {
    }
 
 
-   function numExprSymbols(numexpr) {
-      if (typeof(numexpr) === 'number') {
-         return []
-      } else if (typeof(numexpr) === 'string') {
-         return [numexpr]
-      } else {
-         return numExprSymbols(numexpr.arg1).concat(numExprSymbols(numexpr.arg2))
-      }
-   }
+   // function numExprSymbols(numexpr) {
+   //    if (typeof(numexpr) === 'number') {
+   //       return []
+   //    } else if (typeof(numexpr) === 'string') {
+   //       return [numexpr]
+   //    } else {
+   //       return numExprSymbols(numexpr.arg1).concat(numExprSymbols(numexpr.arg2))
+   //    }
+   // }
 
    function numExprValue(numexpr, symbols) {
       if (typeof(numexpr) === 'number') {
