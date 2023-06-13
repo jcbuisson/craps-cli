@@ -2,7 +2,7 @@
 
 import { signedToBin13, unsignedToBin32 } from './binutils.js'
 
-import { peg$parse } from './parser.js'
+import { peg$parse as parseCraps } from './craps_parser.js'
 
 import lodashPkg from 'lodash'
 const { padStart } = lodashPkg
@@ -57,7 +57,7 @@ export function checkModule(text) {
    // syntactic analysis by PegJS
    let lines
    try {
-      lines = peg$parse(text)
+      lines = parseCraps(text)
       // console.log('lines', lines)
    } catch(err) {
       if (err.location) {

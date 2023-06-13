@@ -6,18 +6,18 @@ First check your version of nodejs:
 ```
 node --version
 ```
-If node is not installed of its version is < 14, you must upgrade it. On Debian-based linux:
+If node is not installed or its version is < 14, you must install/upgrade it. On Debian-based linux:
 ```
 curl -sL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh
 sudo bash nodesource_setup.sh
 sudo apt-get install -y nodejs
 ```
 
-## Install craps cli
+## Install CRAPS CLI
 ```
 npm install craps-cli -g
 ```
-On Unix, it installs a `craps` command in `/usr/local/bin/` (which links to a NodeJS script in `/usr/local/lib/node_modules/craps-cli`)
+On Unix, it installs a `craps` command in `/usr/local/bin/` (which links to NodeJS script `/usr/local/lib/node_modules/craps-cli`)
 
 
 # Check a CRAPS program
@@ -36,6 +36,18 @@ Prints out a memory dump
 
 # Test a CRAPS program against a test file
 ```
-craps test ./samples/add.craps ./sample-tests/add.tst
+craps test ./samples/add.craps ./samples/add.tst
 ```
-Run the test file line by line and stops at the first unverified 'check' statement.
+Run the test file line by line and stops at the first unverified 'check' statement or memory access error.
+Return a unix status code:
+
+```
+0: passed all tests
+1: syntax or semantic error in test file
+2: memory check failed
+3: register check failed
+4 : memory read at uninitialized address
+5 : memory write at unmapped memory address
+6 : program counter at uninitialized memory address
+7 : memory read at unmapped memory address
+100: unknown error

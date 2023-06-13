@@ -28,12 +28,17 @@
   "contributors": [],
   "scripts": {
     "craps": "node scripts/craps-cli.js",
-    "test": ""
+    "test": "mocha --require esm 'test/**/*.test.js'"
   },
   "dependencies": {
     "@jcbuisson/readlinesync": "^1.0.2",
     "commander": "^10.0.1",
     "inquirer": "^9.2.7",
     "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "chai": "^4.3.7",
+    "esm": "^3.2.25",
+    "mocha": "^10.2.0"
   }
 }

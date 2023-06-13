@@ -52,7 +52,7 @@ export function and32(bin32a, bin32b) {
       let on = bin32a.charAt(i) === '1' && bin32b.charAt(i) === '1'
       result += (on ? '1' : '0')
    }
-   console.log('and32 bin32a', bin32a, 'bin32b', bin32b, 'result', result)
+   // console.log('and32 bin32a', bin32a, 'bin32b', bin32b, 'result', result)
    return result
 }
 
