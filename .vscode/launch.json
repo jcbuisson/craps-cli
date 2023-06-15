@@ -1,0 +1,18 @@
+{
+   // Utilisez IntelliSense pour en savoir plus sur les attributs possibles.
+   // Pointez pour afficher la description des attributs existants.
+   // Pour plus d'informations, visitez : https://go.microsoft.com/fwlink/?linkid=830387
+   "version": "0.2.0",
+   "configurations": [
+      {
+         "type": "node",
+         "request": "launch",
+         "name": "pgcd.test",
+         "skipFiles": [
+            "<node_internals>/**"
+         ],
+         "program": "${workspaceFolder}/scripts/craps-cli.js",
+         "args": ["test", "./samples/pgcd.craps", "./samples/pgcd.test"]
+      }
+   ]
+}

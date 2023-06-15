@@ -2,7 +2,7 @@
 
 import { program } from 'commander'
 import { readFile } from 'fs/promises'
-import { unsignedToBin32 } from '../src/binutils.js'
+import { unsignedToBin32, unsignedToHex8, bin32ToSigned } from '../src/binutils.js'
 
 import { checkModule } from '../src/crapsChecker.js'
 import { step } from '../src/crapsSimulator.js'
@@ -24,7 +24,7 @@ async function main() {
       try {
          const buffer = await readFile(source)
          const text = buffer.toString()
-         const { errorMsg, lines, symbols, memory } = checkModule(text)
+         const { errorMsg } = checkModule(text)
          if (errorMsg) {
             console.error(errorMsg)
          } else {
@@ -41,7 +41,7 @@ async function main() {
       try {
          const buffer = await readFile(source)
          const text = buffer.toString()
-         const { errorMsg, lines, symbols, memory } = checkModule(text)
+         const { errorMsg, memory } = checkModule(text)
          if (errorMsg) {
             console.error(errorMsg)
          } else {
@@ -62,8 +62,9 @@ async function main() {
          // parse craps program
          const buffer = await readFile(source)
          const text = buffer.toString()
-         const { errorMsg, lines, symbols, memory } = checkModule(text)
+         const { errorMsg, memory } = checkModule(text)
          if (errorMsg) throw new Error(message)
+         // initial simulation state
          let state = {
             currentAddress: 0,
             memoryDict: memory,
@@ -89,33 +90,40 @@ async function main() {
          }
          // execute commands one by one
          for (const command of commandList) {
-            if (verbose) console.log(`>> ${testfile}:${command.lineno} ${command.type}`)
+            if (verbose) console.log(`>> ${testfile}:${command.lineno} ${command.match}`)
             if (command.type === 'clock') {
                try {
                   for (let i = 0; i < command.count; i++) {
+                     // simulate one clock cycle and update state
                      state = step(state, verbose)
                   }
                } catch(err) {
                   throw new Error(`${testfile}:${command.lineno} (errno: ${err.cause}) ${err.message}`, { cause: err.cause })
                }
             } else if (command.type === 'interrupt') {
+               // add it to state
                state.it = true
             } else if (command.type === 'switch') {
+               // modify switch value in state
                state.switchArray[command.swIndex] = command.swValue
 
             } else if (command.type === 'check-memory') {
-               if (state.memoryDict[command.memIndex] !== command.memValue) {
+               const stateValue = bin32ToSigned(state.memoryDict[command.memIndex])
+               if (stateValue !== command.memValue) {
                   const cause = 2
-                  throw new Error(`${testfile}:${command.lineno}(errno: ${cause}) memory check failed`, { cause })
+                  throw new Error(`${testfile}:${command.lineno}(errno: ${cause}) memory check failed at location 0x${unsignedToHex8(addr)}; got ${stateValue}; expected ${command.memValue}`, { cause })
                }
             } else if (command.type === 'check-register') {
-               if (state.registerDict[command.regIndex] !== command.regValue) {
+               const stateValue = bin32ToSigned(state.registerDict[command.regIndex])
+               if (stateValue !== command.regValue) {
+                  if (verbose) dumpRegisters(state.registerDict)
                   const cause = 3
-                  throw new Error(`${testfile}:${command.lineno}(errno: ${cause}) register check failed`, { cause })
+                  throw new Error(`${testfile}:${command.lineno}(errno: ${cause}) register %r${command.regIndex} check failed; got ${stateValue}; expected ${command.regValue}`, { cause })
                }
             }
          }
-         dumpRegisters(state.registerDict)
+         console.log("tests passed successfully")
+         if (verbose) dumpRegisters(state.registerDict)
       } catch (err) {
          console.error(err.message)
          process.exit(err.cause || -100)

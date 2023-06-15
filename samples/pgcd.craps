@@ -6,7 +6,6 @@
 pgcd:    cmp    %r2, %r1 // tant que x <> y
          bne    skip // x=y ?
          // x = y : return x
-         mov    %r1, %r3 // val <- x
          ba     stop
 skip:    bneg   sup // x>y ?
          // x < y

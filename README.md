@@ -51,3 +51,4 @@ Return a unix status code:
 6 : program counter at uninitialized memory address
 7 : memory read at unmapped memory address
 100: unknown error
+```

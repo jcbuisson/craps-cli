@@ -1,0 +1,71 @@
+start
+  = Lines
+
+Lines
+  = _ line:Line _ tail:Lines
+     { return [line].concat(tail); }
+  / _ line:Line _
+     { return [line]; }
+  / _
+     { return [] }
+
+Line
+  = directive:Directive
+  
+_ "whitespace"
+  = ( whiteSpace / enclosedComment / lineComment / lineTerminator )*
+     { return []; }
+
+whiteSpace 
+  = [\t\v\f \u00A0\uFEFF] 
+
+lineTerminator 
+  = [\n\r] 
+
+enclosedComment 
+  = "/*" (!"*/" anyCharacter)* "*/" 
+
+lineComment 
+  = "//" (!lineTerminator anyCharacter)* 
+
+anyCharacter 
+  = . 
+
+Integer
+  = val:NaturalInteger
+    { return val }
+  / '-' val:NaturalInteger
+    { return -val }
+    
+NaturalInteger
+  = '0b'[0-1]+
+    { return parseInt(text().substring(2), 2) }
+  / '0x'[0-9a-fA-F]+
+    { return parseInt(text().substring(2), 16) }
+  / [0-9]+
+    { return parseInt(text(), 10) }
+
+Directive
+  = 'clock' _ count:NaturalInteger
+    { return { match: `clock ${count}`, lineno: location().start.line, type: 'clock', count } }
+  / 'clock'
+    { return { match: `clock`, lineno: location().start.line, type: 'clock', count: 1 } }
+  / 'interrupt'
+    { return { match: `interrupt`, lineno: location().start.line, type: 'interrupt' } }
+  / 'switch' _ swIndex:NaturalInteger _ swValue:NaturalInteger
+    {
+    if (swIndex > 15) error("switch index must be < 15")
+    return { match: `switch ${swIndex} ${swValue}`, lineno: location().start.line, type: 'switch', swIndex, swValue }
+    }
+  / 'check-memory' _ memIndex:NaturalInteger _ memValue:NaturalInteger
+    {
+    if (memIndex >= 2**32) error("memory address must be < 2^32")
+    if (memIndex >= 2**32) error("memory value must be < 2^32")
+    return { match: `check-memory ${memIndex} ${memValue}`, lineno: location().start.line, type: 'check-memory', memIndex, memValue }
+    }
+  / 'check-register' _ regIndex:NaturalInteger _ regValue:NaturalInteger
+    {
+    if (regIndex > 31) error("register number must be < 32")
+    if (regValue >= 2**32) error("register value must be < 2^32")
+    return { match: `check-register ${regIndex} ${regValue}`, lineno: location().start.line, type: 'check-register', regIndex, regValue }
+    }
