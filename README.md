@@ -22,21 +22,21 @@ On Unix, it installs a `craps` command in `/usr/local/bin/` (which links to Node
 
 # Check a CRAPS program
 ```
-craps check ./samples/add.craps
+craps check ./samples/pgcd.craps
 ```
 Prints out all errors
 
 
 # Assemble a CRAPS program
 ```
-craps assemble ./samples/add.craps
+craps assemble ./samples/pgcd.craps
 ```
 Prints out a memory dump
 
 
 # Test a CRAPS program against a test file
 ```
-craps test ./samples/add.craps ./samples/add.tst
+craps test ./samples/pgcd.craps ./samples/pgcd.tst
 ```
 Run the test file line by line and stops at the first unverified 'check' statement or memory access error.
 Return a unix status code:
