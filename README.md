@@ -36,7 +36,7 @@ Prints out a memory dump
 
 # Test a CRAPS program against a test file
 ```
-craps test ./samples/pgcd.craps ./samples/pgcd.tst
+craps test ./samples/pgcd.craps ./samples/pgcd.test
 ```
 Run the test file line by line and stops at the first unverified 'check' statement or memory access error.
 Return a unix status code:
