@@ -52,3 +52,38 @@ Return a unix status code:
 7 : memory read at unmapped memory address
 100: unknown error
 ```
+
+```
+gcd.craps
+// compute greater common denominator
+         set    78, %r1 // valeur de x
+         set    143, %r2 // valeur de y
+         
+pgcd:    cmp    %r2, %r1 // while x <> y
+         bne    skip // x=y?
+         // x = y: return x
+         ba     stop
+skip:    bneg   sup // x>y?
+         // x < y
+         subcc  %r2, %r1, %r2 // y <- y - x
+         ba     pgcd
+sup:     // x > y
+         subcc  %r1, %r2, %r1 // x <- x - y
+         ba     pgcd
+stop:    ba     stop
+```
+
+```
+gcd.test
+clock            40
+check-register   1      13
+```
+
+## Test commands
+
+- `clock`: run simulation for one step. A synthetic instruction simulation counts for one step.
+- `clock {count}`: run simulation for `count` steps.
+- `interrupt`: triggers an interrupt
+- `switch {index} {value}`: set switch `index` to `value`
+- `check-memory {address} {value}`: check that memory location `address` contains `value`.
+- `check-register {regno} {value}`: check that register of index `regno` contains `value`.

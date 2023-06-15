@@ -1,17 +1,16 @@
-/* TD1 calcul du PGCD */
-
+// compute greater common denominator
          set    78, %r1 // valeur de x
          set    143, %r2 // valeur de y
          
-pgcd:    cmp    %r2, %r1 // tant que x <> y
-         bne    skip // x=y ?
-         // x = y : return x
+pgcd:    cmp    %r2, %r1 // while x <> y
+         bne    skip // x=y?
+         // x = y: return x
          ba     stop
-skip:    bneg   sup // x>y ?
+skip:    bneg   sup // x>y?
          // x < y
          subcc  %r2, %r1, %r2 // y <- y - x
          ba     pgcd
 sup:     // x > y
          subcc  %r1, %r2, %r1 // x <- x - y
          ba     pgcd
-stop:    ba     stop // arrêt
+stop:    ba     stop
