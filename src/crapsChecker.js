@@ -60,6 +60,7 @@ export function checkModule(text) {
       lines = parseCraps(text)
       // console.log('lines', lines)
    } catch(err) {
+      let errorMsg = ''
       if (err.location) {
          errorMsg = 'Line ' + err.location.start.line + ', column ' + err.location.start.column + ': '
       }
@@ -221,11 +222,11 @@ export function checkModule(text) {
          try {
             instruction.simm13 = numExprValue(instruction.simm13, symbols)
          } catch(error) {
-            let message = `*** error line ${lineno}: ${error.message}`
+            let message = `*** error line ${line.lineno}: ${error.message}`
             throw new Error(message)
          }
          if (instruction.simm13 < -4096 || instruction.simm13 > 4095) {
-            let message = `*** error line ${lineno}: 13-bit immediate value '${instruction.simm13}' must be in [-4096..4095]`
+            let message = `*** error line ${line.lineno}: 13-bit immediate value '${instruction.simm13}' must be in [-4096..4095]`
             throw new Error(message)
          }
       }
@@ -234,11 +235,11 @@ export function checkModule(text) {
             // replace instruction.imm24 by its evaluation, so that the simulator won't have to compute it
             instruction.imm24 = numExprValue(instruction.imm24, symbols)
          } catch(error) {
-            let message = `*** error line ${lineno}: ${error.message}`
+            let message = `*** error line ${line.lineno}: ${error.message}`
             throw new Error(message)
          }
          if (instruction.imm24 < 0 || instruction.imm24 > 16777216) {
-            let message = `*** error line ${lineno}: 24-bit value '${instruction.imm24}' must be in [0..16777216]`
+            let message = `*** error line ${line.lineno}: 24-bit value '${instruction.imm24}' must be in [0..16777216]`
             throw new Error(message)
          }
       }

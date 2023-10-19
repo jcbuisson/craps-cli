@@ -7,19 +7,20 @@ import { unsignedToBin32, unsignedToHex8, bin32ToSigned } from '../src/binutils.
 import { checkModule } from '../src/crapsChecker.js'
 import { step } from '../src/crapsSimulator.js'
 import { peg$parse as parseTest } from '../src/test_parser.js'
-
+// import packageData from '../package.json' assert {type: 'json'}
 
 main()
 
 async function main() {
    program
-      .name('craps-cli')
-      .description('CLI to CRAPS operations')
-      .version('1.0.0')
+      .name('craps')
+      .description('CLI for CRAPS operations')
+      // .version(packageData.version)
+      .version('1.0.2')
 
    program
    .command('check <source>')
-   .description('Check a CRAPS program')
+   .description('Check a CRAPS program and display errors')
    .action(async (source) => {
       try {
          const buffer = await readFile(source)
@@ -37,6 +38,7 @@ async function main() {
       
    program
    .command('assemble <source>')
+   .description('Assemble a CRAPS program and dump the resulting memory content')
    .action(async (source) => {
       try {
          const buffer = await readFile(source)
@@ -55,7 +57,7 @@ async function main() {
       
    program
    .command('test <source> <testfile>')
-   .description('Test a CRAPS program')
+   .description('Test a CRAPS program against a test file')
    .option('-v, --verbose', "display executed instructions")
    .action(async (source, testfile, { verbose }) => {
       try {
@@ -63,7 +65,7 @@ async function main() {
          const buffer = await readFile(source)
          const text = buffer.toString()
          const { errorMsg, memory } = checkModule(text)
-         if (errorMsg) throw new Error(message)
+         if (errorMsg) throw new Error(errorMsg)
          // initial simulation state
          let state = {
             currentAddress: 0,

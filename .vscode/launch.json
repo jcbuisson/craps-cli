@@ -7,7 +7,17 @@
       {
          "type": "node",
          "request": "launch",
-         "name": "pgcd.test",
+         "name": "check",
+         "skipFiles": [
+            "<node_internals>/**"
+         ],
+         "program": "${workspaceFolder}/scripts/craps-cli.js",
+         "args": ["check", "./samples/bug.craps"]
+      },
+      {
+         "type": "node",
+         "request": "launch",
+         "name": "test",
          "skipFiles": [
             "<node_internals>/**"
          ],
