@@ -16,7 +16,7 @@ async function main() {
       .name('craps')
       .description('CLI for CRAPS operations')
       // .version(packageData.version)
-      .version('1.0.2')
+      .version('1.0.4')
 
    program
    .command('check <source>')
