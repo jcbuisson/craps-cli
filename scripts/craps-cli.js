@@ -16,7 +16,7 @@ async function main() {
       .name('craps')
       .description('CLI for CRAPS operations')
       // .version(packageData.version)
-      .version('1.0.4')
+      .version('1.0.5')
 
    program
    .command('check <source>')
@@ -110,10 +110,10 @@ async function main() {
                state.switchArray[command.swIndex] = command.swValue
 
             } else if (command.type === 'check-memory') {
-               const stateValue = bin32ToSigned(state.memoryDict[command.memIndex])
+               const stateValue = bin32ToSigned(state.memoryDict[command.memIndex].value)
                if (stateValue !== command.memValue) {
                   const cause = 2
-                  throw new Error(`${testfile}:${command.lineno}(errno: ${cause}) memory check failed at location 0x${unsignedToHex8(addr)}; got ${stateValue}; expected ${command.memValue}`, { cause })
+                  throw new Error(`${testfile}:${command.lineno}(errno: ${cause}) memory check failed at location 0x${unsignedToHex8(command.memIndex)}; got ${stateValue}; expected ${command.memValue}`, { cause })
                }
             } else if (command.type === 'check-register') {
                const stateValue = bin32ToSigned(state.registerDict[command.regIndex])

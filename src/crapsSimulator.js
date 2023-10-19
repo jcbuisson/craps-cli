@@ -199,7 +199,7 @@ export function step({ currentAddress, memoryDict, registerDict, flagArray, swit
             setMemoryContent(sp, getRegisterValue(currentLine.synthetic.rs))
             setCurrentAddress(currentAddress + 2)
          } else if (currentLine.synthetic.type === 'pop') {
-            const sp32 = getRegisterValue(29)
+            let sp32 = getRegisterValue(29)
             const sp = bin32ToUnsigned(sp32)
             setRegisterValue(currentLine.synthetic.rd, getMemoryContent(sp))
             sp32 = add32(sp32, '00000000000000000000000000000001').result
