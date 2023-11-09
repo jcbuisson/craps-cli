@@ -2,7 +2,7 @@
 
 import { program } from 'commander'
 import { readFile } from 'fs/promises'
-import { unsignedToBin32, unsignedToHex8, bin32ToSigned } from '../src/binutils.js'
+import { bin32ToUnsigned, unsignedToBin32, unsignedToHex8, bin32ToSigned } from '../src/binutils.js'
 
 import { checkModule } from '../src/crapsChecker.js'
 import { step } from '../src/crapsSimulator.js'
@@ -100,7 +100,10 @@ async function main() {
                      state = step(state, verbose)
                   }
                } catch(err) {
-                  throw new Error(`${testfile}:${command.lineno} (errno: ${err.cause}) ${err.message}`, { cause: err.cause })
+                   if (err.message !== "halt") { // PQ 24/10/23
+                       console.error(err.stack)
+                       throw new Error(`${testfile}:${command.lineno} (errno: ${err.cause}) ${err.message}`, { cause: err.cause })
+                   }
                }
             } else if (command.type === 'interrupt') {
                // add it to state
@@ -127,11 +130,61 @@ async function main() {
          console.log("tests passed successfully")
          if (verbose) dumpRegisters(state.registerDict)
       } catch (err) {
+         console.error(err.stack)
          console.error(err.message)
          process.exit(err.cause || -100)
       }
    })
-      
+
+   // ajout PQ 24/10/24
+   program
+   .command('run <source>')
+   .description('Execute a CRAPS program until it halts')
+   .option('-v, --verbose', "display executed instructions")
+   .option('-s, --stack', "print stack when it halts")
+   .option('-d, --dune', "for dune runtest (no filename, output on stdout)")
+   .action(async (source, { verbose, stack, dune }) => {
+      try {
+         // parse craps program
+         const buffer = await readFile(source)
+         const text = buffer.toString()
+         const { errorMsg, memory } = checkModule(text)
+         if (errorMsg) throw new Error(errorMsg)
+         // initial simulation state
+         let state = {
+            currentAddress: 0,
+            memoryDict: memory,
+            registerDict: Array.from({ length: 32 }).fill('00000000000000000000000000000000'),
+            flagArray: [false, false, false, false], // NZVC
+            switchArray: Array.from({ length: 32 }).fill(0),
+            ledArray: Array.from({ length: 32 }).fill(0),
+            it: false,
+         }
+          try {
+             while (true) {
+                 // simulate one clock cycle and update state
+                 state = step(state, verbose)
+             }
+         } catch(err) {
+             if (err.message !== "halt") {
+                 if (! dune) {
+                     console.error(err.stack)
+                     throw new Error(`${source}: (errno: ${err.cause}) ${err.message}`, { cause: err.cause })
+                 } else {
+                     throw new Error(`${err.message}`, { cause: err.cause })
+                 }
+             } else {
+                 process.stdout.write("\n")
+             }
+         }
+         if (stack) dumpStack(state.registerDict, state.memoryDict)          
+      } catch (err) {
+         if (! dune) console.error(err.message)
+         else console.log(err.message)
+         process.exit(err.cause || -100)
+      }
+   })
+    
    program.parse()
 }
 
@@ -147,4 +200,16 @@ function dumpRegisters(registers) {
       const value = registers[regno]
       console.log(`%r${regno}`.padStart(4), value)
    }
+}
+
+// PQ 25/10/23
+function dumpStack(registers, memory) {
+    const sp = bin32ToUnsigned(registers[29])
+    const fp = bin32ToUnsigned(registers[27])
+    console.log('%%sp = ', sp)
+    console.log('%%fp = ', fp)
+    for (let i = 20; i > -20; i--) {
+        const value = memory[sp + i]?.value
+        if (value) console.log(""+(sp+i), " : ", bin32ToUnsigned(value))
+    }
 }

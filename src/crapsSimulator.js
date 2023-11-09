@@ -35,6 +35,9 @@ export function step({ currentAddress, memoryDict, registerDict, flagArray, swit
       if (currentLine.instruction) {
          // execute instruction
          if (currentLine.instruction.type === 'instructionBcc') {
+            if (currentLine.instruction.label === '_halt') { // PQ 24/10/23
+               throw new Error("halt");
+            }
             if (evalCondition(currentLine.instruction)) {
                setCurrentAddress(currentAddress + currentLine.instruction.disp)
             } else {
@@ -272,6 +275,12 @@ export function step({ currentAddress, memoryDict, registerDict, flagArray, swit
             const bit = content.charAt(31-i)
             ledArray[i] = (bit==='1')
          }
+      } else if (address == 0xA0000000) { // ajout PQ 19/10/23
+          // affiche les 32 bits comme un entier signé
+          process.stdout.write('' + bin32ToSigned(content));
+      } else if (address == 0xA0000001) { // ajout PQ 19/10/23
+          // affiche les 32 bits comme un caractère
+          process.stdout.write(String.fromCharCode(bin32ToUnsigned(content)));
       } else {
          const cause = 5
          throw new Error(`write-access to unmapped memory location 0x${address.toString(16)}`, { cause })
